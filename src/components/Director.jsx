@@ -1,20 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Form, Table } from 'react-bootstrap';
+import fallbackData from '../data/database.json';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:9999';
 const cleanText = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
 const genderText = (male) => (male ? 'Male' : 'Female');
 
 function Director() {
-  const [directorList, setDirectorList] = useState([]);
+  const [directorList, setDirectorList] = useState(fallbackData.directors);
   const [keyword, setKeyword] = useState('');
 
   useEffect(() => {
     axios
       .get(`${API_URL}/directors`)
       .then((response) => setDirectorList(response.data))
-      .catch((error) => console.error(error));
+      .catch(() => setDirectorList(fallbackData.directors));
   }, []);
 
   const directors = useMemo(() => {

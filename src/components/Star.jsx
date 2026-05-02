@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Col, Form, Row, Table } from 'react-bootstrap';
+import fallbackData from '../data/database.json';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:9999';
 const cleanText = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
 const genderText = (male) => (male ? 'Male' : 'Female');
 
 function Star() {
-  const [starList, setStarList] = useState([]);
+  const [starList, setStarList] = useState(fallbackData.stars);
   const [keyword, setKeyword] = useState('');
   const [gender, setGender] = useState('all');
 
@@ -15,7 +16,7 @@ function Star() {
     axios
       .get(`${API_URL}/stars`)
       .then((response) => setStarList(response.data))
-      .catch((error) => console.error(error));
+      .catch(() => setStarList(fallbackData.stars));
   }, []);
 
   const stars = useMemo(() => {

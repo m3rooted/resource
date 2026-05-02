@@ -1,20 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { Button, Col, Form, Row, Table } from 'react-bootstrap';
+import { Button, Col, Form, Pagination, Row, Table } from 'react-bootstrap';
+import fallbackData from '../data/database.json';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:9999';
+const MOVIES_PER_PAGE = 5;
 const cleanText = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
 
 const getById = (items, id) => items.find((item) => item.id === id);
 
 function Movie() {
-  const [movieList, setMovieList] = useState([]);
-  const [producerList, setProducerList] = useState([]);
-  const [directorList, setDirectorList] = useState([]);
+  const [movieList, setMovieList] = useState(fallbackData.movies);
+  const [producerList, setProducerList] = useState(fallbackData.producers);
+  const [directorList, setDirectorList] = useState(fallbackData.directors);
   const [keyword, setKeyword] = useState('');
   const [producerId, setProducerId] = useState('all');
   const [directorId, setDirectorId] = useState('all');
   const [sortDirection, setSortDirection] = useState('asc');
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     Promise.all([
@@ -27,8 +30,16 @@ function Movie() {
         setProducerList(producersResponse.data);
         setDirectorList(directorsResponse.data);
       })
-      .catch((error) => console.error(error));
+      .catch(() => {
+        setMovieList(fallbackData.movies);
+        setProducerList(fallbackData.producers);
+        setDirectorList(fallbackData.directors);
+      });
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [directorId, keyword, producerId, sortDirection]);
 
   const movies = useMemo(() => {
     const searchText = keyword.trim().toLowerCase();
@@ -48,6 +59,16 @@ function Movie() {
         return sortDirection === 'asc' ? firstDate - secondDate : secondDate - firstDate;
       });
   }, [directorId, keyword, movieList, producerId, sortDirection]);
+
+  const totalPages = Math.max(1, Math.ceil(movies.length / MOVIES_PER_PAGE));
+  const pageStart = (currentPage - 1) * MOVIES_PER_PAGE;
+  const paginatedMovies = movies.slice(pageStart, pageStart + MOVIES_PER_PAGE);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   return (
     <section>
@@ -109,7 +130,7 @@ function Movie() {
           </tr>
         </thead>
         <tbody>
-          {movies.map((movie) => {
+          {paginatedMovies.map((movie) => {
             const producer = getById(producerList, movie.ProducerId);
             const director = getById(directorList, movie.DirectorId);
 
@@ -124,8 +145,34 @@ function Movie() {
               </tr>
             );
           })}
+
+          {paginatedMovies.length === 0 && (
+            <tr>
+              <td colSpan={6} className="text-center">
+                No movies found.
+              </td>
+            </tr>
+          )}
         </tbody>
       </Table>
+
+      {totalPages > 1 && (
+        <Pagination className="justify-content-center">
+          {Array.from({ length: totalPages }, (_, index) => {
+            const page = index + 1;
+
+            return (
+              <Pagination.Item
+                key={page}
+                active={page === currentPage}
+                onClick={() => setCurrentPage(page)}
+              >
+                {page}
+              </Pagination.Item>
+            );
+          })}
+        </Pagination>
+      )}
     </section>
   );
 }
